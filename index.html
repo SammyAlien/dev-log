@@ -101,7 +101,7 @@
         <input type="password" id="apiUrl" placeholder="https://script.google.com/.../exec">
       </div>
       <div class="form-group" style="margin-bottom: 8px;">
-        <label>Token 🔒</label>
+        <label>Token</label>
         <input type="password" id="apiToken" placeholder="輸入TOKEN">
       </div>
       <div id="modal-status" style="font-size: 12px; min-height: 18px; margin-bottom: 8px;"></div>
@@ -153,7 +153,7 @@
 
     <div class="view-section">
       <header><h2>Log History</h2></header>
-      <div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 搜尋日期、專案、標題、標籤或內容..."></div>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder="搜尋日期、專案、標題、標籤或內容..."></div>
       <div id="logsContainer"><div class="loading-text">請完成 API 連線設定即可載入歷史紀錄...</div></div>
     </div>
   </div>
@@ -216,7 +216,7 @@
       const token = tokenInput.value.trim();
       
       if (!url || !token) {
-        modalStatus.textContent = '⚠️ 請輸入完整的 URL 與 Token';
+        modalStatus.textContent = '請輸入完整的 URL 與 Token';
         modalStatus.className = 'error';
         return;
       }
@@ -237,7 +237,7 @@
         settingsModal.classList.remove('active');
       } else {
         // 連線失敗：不關閉視窗，提示錯誤
-        modalStatus.textContent = '❌ 連線失敗，請檢查金鑰或網址。';
+        modalStatus.textContent = '連線失敗，請檢查金鑰或網址。';
         modalStatus.className = 'error';
         cachedApiUrl = localStorage.getItem('devLogApiUrl') || ''; // 恢復原狀態
       }
