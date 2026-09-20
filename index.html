@@ -20,20 +20,19 @@
     textarea { resize: vertical; min-height: 120px; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; }
     input:focus, textarea:focus { border-color: var(--focus-color); }
     
-    /* 標籤輸入與膠囊樣式 */
+    /* 標籤輸入與待選標籤樣式 */
     .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-color); padding: 6px 0; transition: border-color 0.2s ease; cursor: text; }
     .tag-input-container:focus-within { border-color: var(--focus-color); }
     .tag-pill-ui { display: flex; align-items: center; gap: 6px; background-color: var(--text-main); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 13px; }
     .tag-pill-ui .remove { cursor: pointer; opacity: 0.6; font-size: 14px; line-height: 1; }
     .tag-pill-ui .remove:hover { opacity: 1; }
     .tag-input-field { border: none !important; outline: none; flex-grow: 1; min-width: 120px; padding: 4px 0 !important; font-size: 14px !important; }
-    
-    /* 待選標籤樣式 */
     .available-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .available-tag-pill { padding: 4px 10px; border: 1px dashed var(--border-color); border-radius: 16px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; user-select: none; }
     .available-tag-pill:hover { border-color: var(--text-main); color: var(--text-main); }
 
-    .btn-group { display: flex; gap: 12px; }
+    /* 按鈕樣式 */
+    .btn-group { display: flex; gap: 12px; margin-top: 12px; }
     .btn-submit { flex: 2; padding: 12px; background-color: var(--text-main); color: #ffffff; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
     .btn-submit:hover { opacity: 0.85; }
     .btn-submit:disabled { background-color: var(--text-muted); cursor: not-allowed; }
@@ -43,6 +42,34 @@
     #status-message { margin-top: 12px; font-size: 13px; text-align: center; min-height: 20px; }
     .success { color: #28a745; }
     .error { color: #dc3545; }
+
+    /* 懸浮設定按鈕與彈出框 (Modal) */
+    .floating-settings-btn {
+      position: fixed; bottom: 24px; right: 24px;
+      width: 48px; height: 48px; border-radius: 50%;
+      background-color: var(--text-main); color: #fff;
+      border: none; font-size: 20px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s, background-color 0.2s; z-index: 999;
+    }
+    .floating-settings-btn:hover { transform: scale(1.08); background-color: #333; }
+    
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    
+    .modal-box {
+      background-color: var(--bg-color); padding: 40px; border-radius: 12px;
+      width: 90%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      border: 1px solid var(--border-color); transform: translateY(20px); transition: transform 0.3s;
+    }
+    .modal-overlay.active .modal-box { transform: translateY(0); }
+    .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
 
     /* 檢視區塊樣式 */
     .search-bar { margin-bottom: 32px; }
@@ -61,17 +88,40 @@
   </style>
 </head>
 <body>
+  
+  <!-- 右下角懸浮設定按鈕 -->
+  <button type="button" class="floating-settings-btn" id="openSettingsBtn" title="API 設定">⚙️</button>
+
+  <!-- 彈出式 API 設定框 -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+      <div class="modal-title">API 連線設定</div>
+      <div class="form-group">
+        <label>Apps Script URL</label>
+        <input type="password" id="apiUrl" placeholder="https://script.google.com/.../exec">
+      </div>
+      <div class="form-group" style="margin-bottom: 8px;">
+        <label>Token 🔒</label>
+        <input type="password" id="apiToken" placeholder="輸入通關密語">
+      </div>
+      <div id="modal-status" style="font-size: 12px; min-height: 18px; margin-bottom: 8px;"></div>
+      <div class="btn-group">
+        <button type="button" class="btn-submit" id="confirmApiBtn">確認連線 (Connect)</button>
+        <button type="button" class="btn-cancel" id="closeModalBtn">取消</button>
+      </div>
+    </div>
+  </div>
+
   <div class="layout-wrapper">
-    <!-- 左側輸入表單 -->
     <div class="form-section">
       <header>
         <h1 id="formTitle">New Entry</h1>
       </header>
       <form id="logForm">
-        <div class="form-group" style="display: flex; gap: 16px;">
-          <div style="flex: 1;"><label>Date</label><input type="date" id="date" required></div>
-          <!-- Token 輸入框：輸入過後會自動隱藏 -->
-          <div style="flex: 1;" id="tokenContainer"><label>Token 🔒</label><input type="password" id="apiToken" placeholder="首次輸入密語" required></div>
+        <!-- 移除了原有的 API 輸入區塊，主畫面更乾淨 -->
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date" required>
         </div>
         <div class="form-group">
           <label>Project</label>
@@ -87,7 +137,6 @@
           <div class="tag-input-container" id="tagInputContainer" onclick="document.getElementById('tagInputField').focus()">
             <input type="text" id="tagInputField" class="tag-input-field" placeholder="輸入後按 Enter..." autocomplete="off">
           </div>
-          <!-- 待選標籤區塊 -->
           <div id="availableTagsContainer" class="available-tags"></div>
         </div>
         <div class="form-group">
@@ -102,49 +151,107 @@
       </form>
     </div>
 
-    <!-- 右側歷史紀錄檢視 -->
     <div class="view-section">
       <header><h2>Log History</h2></header>
-      <div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 搜尋專案、標題或內容..."></div>
-      <div id="logsContainer"><div class="loading-text">請輸入 Token 即可載入歷史紀錄...</div></div>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 搜尋日期、專案、標題、標籤或內容..."></div>
+      <div id="logsContainer"><div class="loading-text">請完成 API 連線設定即可載入歷史紀錄...</div></div>
     </div>
   </div>
 
   <script>
-    // 🚨 這裡務必換成你 Apps Script 部署後取得的 Web App URL 🚨
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwA2hSP4md6SZHFOWIpaekO6jT4Rs42_zZfjD5c8zKVC5f6janOYaXwOUBSMeeCNw44IQ/exec'; 
-
     let globalLogs = []; 
     let currentTags = [];
     let globalAvailableTags = [];
     let editingId = null;
     let editingOldProject = null;
+    let cachedApiUrl = ''; 
 
     document.getElementById('date').valueAsDate = new Date();
+    
+    // DOM 元素綁定
+    const urlInput = document.getElementById('apiUrl');
     const tokenInput = document.getElementById('apiToken');
     const projectInput = document.getElementById('project');
-    
-    // 初始化 Token 與記憶專案
-    if (localStorage.getItem('devLogToken')) {
+    const settingsModal = document.getElementById('settingsModal');
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const confirmApiBtn = document.getElementById('confirmApiBtn');
+    const modalStatus = document.getElementById('modal-status');
+
+    // ==========================================
+    // 懸浮彈出框 (Modal) 邏輯
+    // ==========================================
+    // 檢查是否有儲存紀錄
+    if (localStorage.getItem('devLogApiUrl') && localStorage.getItem('devLogToken')) {
+      cachedApiUrl = localStorage.getItem('devLogApiUrl');
+      urlInput.value = cachedApiUrl;
       tokenInput.value = localStorage.getItem('devLogToken');
-      document.getElementById('tokenContainer').style.display = 'none'; // 隱藏 Token 欄位
-      syncData(tokenInput.value);
+      syncData(); // 自動連線
+    } else {
+      // 第一次使用：強制開啟彈出框，且隱藏取消按鈕
+      settingsModal.classList.add('active');
+      closeModalBtn.style.display = 'none';
     }
+
+    // 點擊懸浮齒輪開啟設定
+    openSettingsBtn.addEventListener('click', () => {
+      // 確保每次開啟時，載入目前儲存的值
+      if (cachedApiUrl) urlInput.value = cachedApiUrl;
+      if (localStorage.getItem('devLogToken')) tokenInput.value = localStorage.getItem('devLogToken');
+      
+      modalStatus.textContent = '';
+      settingsModal.classList.add('active');
+      // 已經有成功設定過的話，允許取消關閉
+      closeModalBtn.style.display = cachedApiUrl ? 'block' : 'none';
+    });
+
+    // 點擊取消關閉設定
+    closeModalBtn.addEventListener('click', () => {
+      settingsModal.classList.remove('active');
+    });
+
+    // 點擊確認連線按鈕
+    confirmApiBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      const token = tokenInput.value.trim();
+      
+      if (!url || !token) {
+        modalStatus.textContent = '⚠️ 請輸入完整的 URL 與 Token';
+        modalStatus.className = 'error';
+        return;
+      }
+
+      confirmApiBtn.disabled = true;
+      confirmApiBtn.textContent = '連線中...';
+      modalStatus.textContent = '';
+      
+      // 暫存到記憶體供 syncData 使用
+      cachedApiUrl = url;
+      localStorage.setItem('devLogToken', token);
+      
+      const success = await syncData();
+      
+      if (success) {
+        // 連線成功：正式寫入 LocalStorage，關閉視窗
+        localStorage.setItem('devLogApiUrl', url);
+        settingsModal.classList.remove('active');
+      } else {
+        // 連線失敗：不關閉視窗，提示錯誤
+        modalStatus.textContent = '❌ 連線失敗，請檢查金鑰或網址。';
+        modalStatus.className = 'error';
+        cachedApiUrl = localStorage.getItem('devLogApiUrl') || ''; // 恢復原狀態
+      }
+      
+      confirmApiBtn.disabled = false;
+      confirmApiBtn.textContent = '確認';
+    });
+
     if (localStorage.getItem('devLogProject')) {
       projectInput.value = localStorage.getItem('devLogProject');
     }
 
-    tokenInput.addEventListener('blur', (e) => {
-      const val = e.target.value.trim();
-      if(val) { 
-        localStorage.setItem('devLogToken', val); 
-        document.getElementById('tokenContainer').style.display = 'none'; 
-        syncData(val); 
-      }
-    });
-
     // ==========================================
-    // 標籤系統邏輯 (膠囊與點選)
+    // 標籤系統邏輯
     // ==========================================
     const tagInputField = document.getElementById('tagInputField');
     const tagInputContainer = document.getElementById('tagInputContainer');
@@ -157,7 +264,7 @@
         pill.innerHTML = `${tag} <span class="remove" onclick="removeTag(${index})">×</span>`;
         tagInputContainer.insertBefore(pill, tagInputField);
       });
-      renderAvailableTags(); // 更新下方待選標籤
+      renderAvailableTags();
     }
 
     function renderAvailableTags() {
@@ -192,13 +299,16 @@
     });
 
     // ==========================================
-    // 同步資料與渲染
+    // 同步資料與渲染 (修改為回傳 true/false)
     // ==========================================
-    async function syncData(token) {
-      document.getElementById('logsContainer').innerHTML = '<div class="loading-text">同步資料中...</div>';
+    async function syncData() {
+      const currentToken = localStorage.getItem('devLogToken');
+      if (!cachedApiUrl || !currentToken) return false;
+
+      document.getElementById('logsContainer').innerHTML = '<div class="loading-text">連線中...</div>';
       try {
-        const response = await fetch(API_URL, {
-          method: 'POST', body: JSON.stringify({ token: token, action: 'sync' }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        const response = await fetch(cachedApiUrl, {
+          method: 'POST', body: JSON.stringify({ token: currentToken, action: 'sync' }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         const result = await response.json();
         
@@ -208,11 +318,14 @@
           renderAvailableTags();
           globalLogs = result.logs;
           renderLogs(globalLogs);
+          return true; // 成功
         } else {
-          document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">同步失敗：${result.message}</div>`;
+          document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">連線失敗：${result.message}</div>`;
+          return false;
         }
       } catch (error) {
-        document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">連線錯誤。</div>`;
+        document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">請檢查 API 網址是否正確。</div>`;
+        return false;
       }
     }
 
@@ -228,7 +341,7 @@
             <div class="log-meta">
               <span class="log-date">${dateStr}</span>
               <span class="log-project">${log.project}</span>
-              <button class="edit-btn" onclick="startEdit('${log.id}')">✎ Edit</button>
+              <button type="button" class="edit-btn" onclick="startEdit('${log.id}')">✎ Edit</button>
             </div>
             <div class="log-title">${log.title}</div>
             <div class="log-tags-view">${log.tags ? '#' + log.tags.split(',').map(t => t.trim()).join(' #') : ''}</div>
@@ -238,26 +351,27 @@
       });
     }
 
-    // 搜尋功能
     document.getElementById('searchInput').addEventListener('input', (e) => {
       const keyword = e.target.value.toLowerCase().trim();
       if (!keyword) return renderLogs(globalLogs);
-      renderLogs(globalLogs.filter(log => 
-        (log.title && log.title.toLowerCase().includes(keyword)) ||
-        (log.content && log.content.toLowerCase().includes(keyword)) ||
-        (log.tags && log.tags.toLowerCase().includes(keyword)) ||
-        (log.project && log.project.toLowerCase().includes(keyword))
-      ));
+      
+      renderLogs(globalLogs.filter(log => {
+        const dateStr = log.date ? new Date(log.date).toISOString().split('T')[0] : '';
+        return (log.title && log.title.toLowerCase().includes(keyword)) ||
+               (log.content && log.content.toLowerCase().includes(keyword)) ||
+               (log.tags && log.tags.toLowerCase().includes(keyword)) ||
+               (log.project && log.project.toLowerCase().includes(keyword)) ||
+               (dateStr.includes(keyword));
+      }));
     });
 
     // ==========================================
-    // 編輯模式管理
+    // 編輯模式與儲存
     // ==========================================
     window.startEdit = function(id) {
       const log = globalLogs.find(l => l.id === id);
       if (!log) return;
-      editingId = id;
-      editingOldProject = log.project;
+      editingId = id; editingOldProject = log.project;
       
       document.getElementById('date').value = log.date ? new Date(log.date).toISOString().split('T')[0] : '';
       document.getElementById('project').value = log.project;
@@ -275,9 +389,10 @@
 
     window.cancelEdit = function() {
       editingId = null; editingOldProject = null;
-      document.getElementById('logForm').reset();
       document.getElementById('date').valueAsDate = new Date();
       document.getElementById('project').value = localStorage.getItem('devLogProject') || '';
+      document.getElementById('title').value = '';
+      document.getElementById('content').value = '';
       currentTags = []; renderTagPills();
       
       document.getElementById('submitBtn').textContent = 'Save Log';
@@ -285,17 +400,19 @@
       document.getElementById('formTitle').textContent = 'New Entry';
     };
 
-    // ==========================================
-    // 表單送出 (新增/更新)
-    // ==========================================
     document.getElementById('logForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      
+      const currentToken = localStorage.getItem('devLogToken');
+      if (!cachedApiUrl || !currentToken) {
+        settingsModal.classList.add('active');
+        return;
+      }
+
       const submitBtn = document.getElementById('submitBtn');
       const statusMsg = document.getElementById('status-message');
-      
-      const currentToken = tokenInput.value;
       const currentProject = projectInput.value.trim();
-      localStorage.setItem('devLogToken', currentToken);
+      
       localStorage.setItem('devLogProject', currentProject);
 
       submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; statusMsg.textContent = '';
@@ -316,24 +433,19 @@
       }
 
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(cachedApiUrl, {
           method: 'POST', body: JSON.stringify(logData), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         const result = await response.json();
 
         if (result.status === 'success') {
           statusMsg.textContent = '儲存成功！'; statusMsg.className = 'success';
-          if (editingId) {
-            cancelEdit(); // 編輯成功後恢復新增模式
-          } else {
-            // 新增成功後清空標題與內容
-            document.getElementById('title').value = ''; 
-            document.getElementById('content').value = '';
-          }
-          syncData(currentToken); // 重新載入最新資料
+          if (editingId) cancelEdit(); 
+          else { document.getElementById('title').value = ''; document.getElementById('content').value = ''; }
+          syncData(); 
         } else throw new Error(result.message);
       } catch (error) {
-        statusMsg.textContent = error.message; statusMsg.className = 'error';
+        statusMsg.textContent = '儲存失敗，請檢查網路狀態或設定。'; statusMsg.className = 'error';
       } finally {
         submitBtn.disabled = false; submitBtn.textContent = editingId ? 'Update Log' : 'Save Log';
       }
