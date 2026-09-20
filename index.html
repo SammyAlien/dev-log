@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Log</title>
+  <style>
+    :root {
+      --bg-color: #fcfcfc; --text-main: #1a1a1a; --text-muted: #888888;
+      --border-color: #e5e5e5; --focus-color: #000000; --project-badge: #eef2f5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); line-height: 1.6; display: flex; justify-content: center; padding: 40px 20px; }
+    .layout-wrapper { display: flex; flex-wrap: wrap; gap: 60px; width: 100%; max-width: 1100px; }
+    .form-section, .view-section { flex: 1; min-width: 340px; }
+    h1, h2 { font-size: 20px; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 24px; border-bottom: 1px solid var(--text-main); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 24px; }
+    label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input[type="text"], input[type="password"], input[type="date"], textarea { width: 100%; padding: 10px 0; background: transparent; border: none; border-bottom: 1px solid var(--border-color); font-size: 15px; color: var(--text-main); outline: none; transition: border-color 0.2s ease; }
+    textarea { resize: vertical; min-height: 120px; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; }
+    input:focus, textarea:focus { border-color: var(--focus-color); }
+    
+    /* 標籤輸入與膠囊樣式 */
+    .tag-input-container { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-color); padding: 6px 0; transition: border-color 0.2s ease; cursor: text; }
+    .tag-input-container:focus-within { border-color: var(--focus-color); }
+    .tag-pill-ui { display: flex; align-items: center; gap: 6px; background-color: var(--text-main); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 13px; }
+    .tag-pill-ui .remove { cursor: pointer; opacity: 0.6; font-size: 14px; line-height: 1; }
+    .tag-pill-ui .remove:hover { opacity: 1; }
+    .tag-input-field { border: none !important; outline: none; flex-grow: 1; min-width: 120px; padding: 4px 0 !important; font-size: 14px !important; }
+    
+    /* 待選標籤樣式 */
+    .available-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .available-tag-pill { padding: 4px 10px; border: 1px dashed var(--border-color); border-radius: 16px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; user-select: none; }
+    .available-tag-pill:hover { border-color: var(--text-main); color: var(--text-main); }
+
+    .btn-group { display: flex; gap: 12px; }
+    .btn-submit { flex: 2; padding: 12px; background-color: var(--text-main); color: #ffffff; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-submit:hover { opacity: 0.85; }
+    .btn-submit:disabled { background-color: var(--text-muted); cursor: not-allowed; }
+    .btn-cancel { flex: 1; padding: 12px; background-color: transparent; color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; display: none; }
+    .btn-cancel:hover { background-color: var(--border-color); }
+
+    #status-message { margin-top: 12px; font-size: 13px; text-align: center; min-height: 20px; }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+
+    /* 檢視區塊樣式 */
+    .search-bar { margin-bottom: 32px; }
+    .search-bar input { background-color: #f5f5f5; border: none; padding: 12px 16px; border-radius: 8px; }
+    .log-item { border-left: 2px solid var(--border-color); padding-left: 16px; margin-bottom: 32px; position: relative; transition: background-color 0.2s; }
+    .log-item::before { content: ''; position: absolute; left: -5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); }
+    .log-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .log-date { font-size: 12px; color: var(--text-muted); }
+    .log-project { font-size: 11px; background-color: var(--project-badge); padding: 2px 6px; border-radius: 4px; color: #555; font-weight: 500; }
+    .edit-btn { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: color 0.2s; }
+    .edit-btn:hover { color: var(--text-main); }
+    .log-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .log-tags-view { font-size: 12px; color: #0066cc; margin-bottom: 10px; font-family: monospace; }
+    .log-content { font-size: 14px; color: #333; white-space: pre-wrap; line-height: 1.7; }
+    .loading-text { font-size: 13px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="layout-wrapper">
+    <!-- 左側輸入表單 -->
+    <div class="form-section">
+      <header>
+        <h1 id="formTitle">New Entry</h1>
+      </header>
+      <form id="logForm">
+        <div class="form-group" style="display: flex; gap: 16px;">
+          <div style="flex: 1;"><label>Date</label><input type="date" id="date" required></div>
+          <!-- Token 輸入框：輸入過後會自動隱藏 -->
+          <div style="flex: 1;" id="tokenContainer"><label>Token 🔒</label><input type="password" id="apiToken" placeholder="首次輸入密語" required></div>
+        </div>
+        <div class="form-group">
+          <label>Project</label>
+          <input type="text" id="project" list="project-list" placeholder="輸入專案名稱自動建表..." required autocomplete="off">
+          <datalist id="project-list"></datalist>
+        </div>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="title" placeholder="日誌標題..." required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Tags</label>
+          <div class="tag-input-container" id="tagInputContainer" onclick="document.getElementById('tagInputField').focus()">
+            <input type="text" id="tagInputField" class="tag-input-field" placeholder="輸入後按 Enter..." autocomplete="off">
+          </div>
+          <!-- 待選標籤區塊 -->
+          <div id="availableTagsContainer" class="available-tags"></div>
+        </div>
+        <div class="form-group">
+          <label>Content</label>
+          <textarea id="content" placeholder="記錄細節..." required></textarea>
+        </div>
+        <div class="btn-group">
+          <button type="submit" class="btn-submit" id="submitBtn">Save Log</button>
+          <button type="button" class="btn-cancel" id="cancelBtn" onclick="cancelEdit()">Cancel</button>
+        </div>
+        <div id="status-message"></div>
+      </form>
+    </div>
+
+    <!-- 右側歷史紀錄檢視 -->
+    <div class="view-section">
+      <header><h2>Log History</h2></header>
+      <div class="search-bar"><input type="text" id="searchInput" placeholder="🔍 搜尋專案、標題或內容..."></div>
+      <div id="logsContainer"><div class="loading-text">請輸入 Token 即可載入歷史紀錄...</div></div>
+    </div>
+  </div>
+
+  <script>
+    // 🚨 這裡務必換成你 Apps Script 部署後取得的 Web App URL 🚨
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwA2hSP4md6SZHFOWIpaekO6jT4Rs42_zZfjD5c8zKVC5f6janOYaXwOUBSMeeCNw44IQ/exec'; 
+
+    let globalLogs = []; 
+    let currentTags = [];
+    let globalAvailableTags = [];
+    let editingId = null;
+    let editingOldProject = null;
+
+    document.getElementById('date').valueAsDate = new Date();
+    const tokenInput = document.getElementById('apiToken');
+    const projectInput = document.getElementById('project');
+    
+    // 初始化 Token 與記憶專案
+    if (localStorage.getItem('devLogToken')) {
+      tokenInput.value = localStorage.getItem('devLogToken');
+      document.getElementById('tokenContainer').style.display = 'none'; // 隱藏 Token 欄位
+      syncData(tokenInput.value);
+    }
+    if (localStorage.getItem('devLogProject')) {
+      projectInput.value = localStorage.getItem('devLogProject');
+    }
+
+    tokenInput.addEventListener('blur', (e) => {
+      const val = e.target.value.trim();
+      if(val) { 
+        localStorage.setItem('devLogToken', val); 
+        document.getElementById('tokenContainer').style.display = 'none'; 
+        syncData(val); 
+      }
+    });
+
+    // ==========================================
+    // 標籤系統邏輯 (膠囊與點選)
+    // ==========================================
+    const tagInputField = document.getElementById('tagInputField');
+    const tagInputContainer = document.getElementById('tagInputContainer');
+
+    function renderTagPills() {
+      document.querySelectorAll('.tag-pill-ui').forEach(el => el.remove());
+      currentTags.forEach((tag, index) => {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill-ui';
+        pill.innerHTML = `${tag} <span class="remove" onclick="removeTag(${index})">×</span>`;
+        tagInputContainer.insertBefore(pill, tagInputField);
+      });
+      renderAvailableTags(); // 更新下方待選標籤
+    }
+
+    function renderAvailableTags() {
+      const container = document.getElementById('availableTagsContainer');
+      container.innerHTML = '';
+      globalAvailableTags.forEach(tag => {
+        if (!currentTags.includes(tag)) {
+          const pill = document.createElement('span');
+          pill.className = 'available-tag-pill';
+          pill.textContent = '+ ' + tag;
+          pill.onclick = () => { currentTags.push(tag); renderTagPills(); };
+          container.appendChild(pill);
+        }
+      });
+    }
+
+    window.removeTag = function(index) { currentTags.splice(index, 1); renderTagPills(); };
+    
+    tagInputField.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val && !currentTags.includes(val)) { 
+          currentTags.push(val); 
+          if (!globalAvailableTags.includes(val)) globalAvailableTags.push(val);
+          renderTagPills(); 
+        }
+        e.target.value = '';
+      } else if (e.key === 'Backspace' && e.target.value === '') {
+        if (currentTags.length > 0) { currentTags.pop(); renderTagPills(); }
+      }
+    });
+
+    // ==========================================
+    // 同步資料與渲染
+    // ==========================================
+    async function syncData(token) {
+      document.getElementById('logsContainer').innerHTML = '<div class="loading-text">同步資料中...</div>';
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST', body: JSON.stringify({ token: token, action: 'sync' }), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          document.getElementById('project-list').innerHTML = result.projects.map(p => `<option value="${p}">`).join('');
+          globalAvailableTags = result.tags;
+          renderAvailableTags();
+          globalLogs = result.logs;
+          renderLogs(globalLogs);
+        } else {
+          document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">同步失敗：${result.message}</div>`;
+        }
+      } catch (error) {
+        document.getElementById('logsContainer').innerHTML = `<div class="loading-text" style="color:#dc3545;">連線錯誤。</div>`;
+      }
+    }
+
+    function renderLogs(logsArray) {
+      const container = document.getElementById('logsContainer');
+      container.innerHTML = '';
+      if (logsArray.length === 0) return container.innerHTML = '<div class="loading-text">目前沒有紀錄。</div>';
+      
+      logsArray.forEach(log => {
+        const dateStr = log.date ? new Date(log.date).toISOString().split('T')[0] : '';
+        const html = `
+          <div class="log-item">
+            <div class="log-meta">
+              <span class="log-date">${dateStr}</span>
+              <span class="log-project">${log.project}</span>
+              <button class="edit-btn" onclick="startEdit('${log.id}')">✎ Edit</button>
+            </div>
+            <div class="log-title">${log.title}</div>
+            <div class="log-tags-view">${log.tags ? '#' + log.tags.split(',').map(t => t.trim()).join(' #') : ''}</div>
+            <div class="log-content">${log.content}</div>
+          </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+    }
+
+    // 搜尋功能
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      const keyword = e.target.value.toLowerCase().trim();
+      if (!keyword) return renderLogs(globalLogs);
+      renderLogs(globalLogs.filter(log => 
+        (log.title && log.title.toLowerCase().includes(keyword)) ||
+        (log.content && log.content.toLowerCase().includes(keyword)) ||
+        (log.tags && log.tags.toLowerCase().includes(keyword)) ||
+        (log.project && log.project.toLowerCase().includes(keyword))
+      ));
+    });
+
+    // ==========================================
+    // 編輯模式管理
+    // ==========================================
+    window.startEdit = function(id) {
+      const log = globalLogs.find(l => l.id === id);
+      if (!log) return;
+      editingId = id;
+      editingOldProject = log.project;
+      
+      document.getElementById('date').value = log.date ? new Date(log.date).toISOString().split('T')[0] : '';
+      document.getElementById('project').value = log.project;
+      document.getElementById('title').value = log.title;
+      document.getElementById('content').value = log.content;
+      
+      currentTags = log.tags ? log.tags.split(',').map(t => t.trim()).filter(t => t) : [];
+      renderTagPills();
+      
+      document.getElementById('submitBtn').textContent = 'Update Log';
+      document.getElementById('cancelBtn').style.display = 'block';
+      document.getElementById('formTitle').textContent = 'Edit Entry';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.cancelEdit = function() {
+      editingId = null; editingOldProject = null;
+      document.getElementById('logForm').reset();
+      document.getElementById('date').valueAsDate = new Date();
+      document.getElementById('project').value = localStorage.getItem('devLogProject') || '';
+      currentTags = []; renderTagPills();
+      
+      document.getElementById('submitBtn').textContent = 'Save Log';
+      document.getElementById('cancelBtn').style.display = 'none';
+      document.getElementById('formTitle').textContent = 'New Entry';
+    };
+
+    // ==========================================
+    // 表單送出 (新增/更新)
+    // ==========================================
+    document.getElementById('logForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const statusMsg = document.getElementById('status-message');
+      
+      const currentToken = tokenInput.value;
+      const currentProject = projectInput.value.trim();
+      localStorage.setItem('devLogToken', currentToken);
+      localStorage.setItem('devLogProject', currentProject);
+
+      submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; statusMsg.textContent = '';
+
+      const logData = {
+        token: currentToken,
+        action: editingId ? 'edit' : 'add',
+        date: document.getElementById('date').value,
+        project: currentProject,
+        title: document.getElementById('title').value,
+        tags: currentTags,
+        content: document.getElementById('content').value
+      };
+      
+      if (editingId) {
+        logData.id = editingId;
+        logData.oldProject = editingOldProject;
+      }
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST', body: JSON.stringify(logData), headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          statusMsg.textContent = '儲存成功！'; statusMsg.className = 'success';
+          if (editingId) {
+            cancelEdit(); // 編輯成功後恢復新增模式
+          } else {
+            // 新增成功後清空標題與內容
+            document.getElementById('title').value = ''; 
+            document.getElementById('content').value = '';
+          }
+          syncData(currentToken); // 重新載入最新資料
+        } else throw new Error(result.message);
+      } catch (error) {
+        statusMsg.textContent = error.message; statusMsg.className = 'error';
+      } finally {
+        submitBtn.disabled = false; submitBtn.textContent = editingId ? 'Update Log' : 'Save Log';
+      }
+    });
+  </script>
+</body>
+</html>
